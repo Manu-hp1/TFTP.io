@@ -1,102 +1,766 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <title>TFTP File Transfer System – UDP Based Client-Server</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MANUSHARE — TFTP File Transfer — Manu H P</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,800;0,900;1,700&family=DM+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    /* ══ COLORS — Deep Navy + Teal + Gold (original TFTP page) ══ */
+    :root {
+      --bg:      #050E1C;
+      --panel:   #071428;
+      --card:    #0A1C38;
+      --card2:   #0C2244;
+      --border:  #153560;
+      --teal:    #00BCD4;
+      --teal2:   #00E5FF;
+      --gold:    #F5A623;
+      --green:   #00C853;
+      --accent:  #E94560;
+      --white:   #E8F4FD;
+      --cream:   #90CAF9;
+      --muted:   #3D6080;
+      --dark:    #020810;
+      --grad:    linear-gradient(135deg,#00BCD4,#00ACC1);
+      --grad2:   linear-gradient(135deg,#F5A623,#00BCD4);
+      --nav-bg:  rgba(5,14,28,.94);
+    }
+    [data-theme="light"] {
+      --bg:      #EAF6FB;
+      --panel:   #D4EDFA;
+      --card:    #FFFFFF;
+      --card2:   #F0F9FF;
+      --border:  #7ECFEA;
+      --teal:    #007B8A;
+      --teal2:   #0097A7;
+      --gold:    #C47800;
+      --green:   #007A3D;
+      --accent:  #B03050;
+      --white:   #03111F;
+      --cream:   #0A2C4A;
+      --muted:   #2A6070;
+      --dark:    #EAF6FB;
+      --grad:    linear-gradient(135deg,#007B8A,#005F6B);
+      --grad2:   linear-gradient(135deg,#C47800,#007B8A);
+      --nav-bg:  rgba(234,246,251,.94);
+    }
+    html{scroll-behavior:smooth;transition:background .3s,color .3s;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--white);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+
+    /* ══ SCROLL BAR ══ */
+    .scroll-bar{position:fixed;top:0;left:0;height:3px;background:var(--grad);z-index:9999;width:0%;transition:width .1s;}
+
+    /* ══ FLOATING ORBS ══ */
+    .orb{position:fixed;border-radius:50%;pointer-events:none;z-index:0;filter:blur(100px);}
+    .orb-1{width:600px;height:600px;background:rgba(0,188,212,.055);top:-150px;right:-150px;animation:o1 15s ease-in-out infinite;}
+    .orb-2{width:450px;height:450px;background:rgba(245,166,35,.04);bottom:0;left:-120px;animation:o2 19s ease-in-out infinite;}
+    .orb-3{width:320px;height:320px;background:rgba(0,200,83,.03);top:40%;right:8%;animation:o3 12s ease-in-out infinite;}
+    @keyframes o1{0%,100%{transform:translate(0,0)}40%{transform:translate(-50px,40px)}70%{transform:translate(30px,-35px)}}
+    @keyframes o2{0%,100%{transform:translate(0,0)}45%{transform:translate(45px,-50px)}72%{transform:translate(-30px,30px)}}
+    @keyframes o3{0%,100%{transform:translate(0,0)}50%{transform:translate(-40px,30px)}}
+
+    /* ══ DRIFTING SCANLINES ══ */
+    body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,188,212,.008) 3px,rgba(0,188,212,.008) 4px);pointer-events:none;z-index:0;animation:scanMove 8s linear infinite;}
+    @keyframes scanMove{0%{background-position:0 0}100%{background-position:0 40px}}
+    body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,188,212,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,188,212,.025) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;animation:gridDrift 25s linear infinite;}
+    @keyframes gridDrift{0%{background-position:0 0}100%{background-position:48px 48px}}
+
+    /* ══ NAV — unique side-accent style ══ */
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 4rem;height:56px;background:var(--nav-bg);backdrop-filter:blur(24px);border-bottom:1px solid var(--border);}
+    /* Left accent notch */
+    nav::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--grad);}
+    .nav-logo{font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--teal);letter-spacing:.1em;font-weight:700;display:flex;align-items:center;gap:.6rem;}
+    .nav-logo-dot{width:8px;height:8px;background:var(--teal);border-radius:50%;animation:blink 2s infinite;box-shadow:0 0 8px var(--teal);}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+    .nav-links{display:flex;gap:0;}
+    .nav-links a{font-size:.78rem;color:var(--muted);text-decoration:none;letter-spacing:.03em;transition:all .2s;font-family:'IBM Plex Mono',monospace;padding:.4rem 1rem;border-right:1px solid var(--border);position:relative;}
+    .nav-links a:first-child{border-left:1px solid var(--border);}
+    .nav-links a:hover{color:var(--teal);background:rgba(0,188,212,.05);}
+    .nav-right{display:flex;align-items:center;gap:.8rem;}
+    .nav-btn{font-family:'IBM Plex Mono',monospace;font-size:.72rem;padding:.38rem 1rem;border:1px solid var(--teal);color:var(--teal);background:transparent;text-decoration:none;letter-spacing:.04em;transition:all .2s;position:relative;overflow:hidden;}
+    .nav-btn::before{content:'';position:absolute;inset:0;background:var(--teal);transform:translateX(-100%);transition:transform .25s ease;}
+    .nav-btn:hover::before{transform:translateX(0);}
+    .nav-btn:hover{color:var(--dark);}
+    .nav-btn span{position:relative;z-index:1;}
+    .theme-toggle-wrap{display:flex;align-items:center;gap:.5rem;cursor:pointer;}
+    .theme-icon{font-size:.88rem;user-select:none;}
+    .theme-toggle{width:38px;height:20px;background:var(--border);border-radius:999px;position:relative;border:1px solid var(--teal);transition:background .3s;flex-shrink:0;}
+    .theme-toggle::after{content:'';position:absolute;width:12px;height:12px;background:var(--teal);border-radius:50%;top:3px;left:3px;transition:transform .3s ease;box-shadow:0 0 6px var(--teal);}
+    [data-theme="light"] .theme-toggle::after{transform:translateX(18px);}
+    #themeIconSun{opacity:.3;}
+    [data-theme="light"] #themeIconMoon{opacity:.3;}
+    [data-theme="light"] #themeIconSun{opacity:1;}
+
+    /* ══════════════════════════════════
+       HERO — Unique split layout with
+       left terminal + right OS dashboard
+    ══════════════════════════════════ */
+    .hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;align-items:stretch;padding-top:56px;position:relative;z-index:1;}
+
+    /* Left panel — full height dark panel */
+    .hero-left{background:var(--panel);border-right:1px solid var(--border);padding:4rem 3.5rem;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;}
+    .hero-left::before{content:'MANUSHARE';position:absolute;bottom:-1rem;right:-1rem;font-family:'IBM Plex Mono',monospace;font-size:8rem;font-weight:700;color:rgba(0,188,212,.03);line-height:1;pointer-events:none;user-select:none;}
+
+    /* Status bar at top of left panel */
+    .hero-status{display:flex;align-items:center;gap:.6rem;margin-bottom:2rem;}
+    .status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s infinite;}
+    .status-text{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--green);letter-spacing:.12em;}
+    .status-divider{flex:1;height:1px;background:var(--border);}
+    .status-port{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);}
+
+    .hero h1{font-family:'Playfair Display',serif;font-size:clamp(2.6rem,4vw,4rem);font-weight:900;line-height:1.08;letter-spacing:-.02em;margin-bottom:1.2rem;}
+    .hero h1 .line-teal{color:var(--teal);}
+    .hero h1 .line-gold{color:var(--gold);}
+
+    .hero-sub{font-size:1rem;color:var(--cream);line-height:1.78;margin-bottom:2rem;max-width:440px;font-weight:300;}
+
+    /* Unique stat badges — horizontal bar style */
+    .stat-bar{display:flex;gap:0;margin-bottom:2.5rem;border:1px solid var(--border);overflow:hidden;}
+    .stat-cell{flex:1;padding:.7rem .5rem;text-align:center;border-right:1px solid var(--border);background:var(--card);transition:background .3s;}
+    .stat-cell:last-child{border-right:none;}
+    .stat-cell:hover{background:var(--card2);}
+    .stat-val{font-family:'IBM Plex Mono',monospace;font-size:.95rem;font-weight:700;color:var(--teal);display:block;transition:transform .3s;}
+    .stat-cell:hover .stat-val{transform:scale(1.1);}
+    .stat-key{font-family:'IBM Plex Mono',monospace;font-size:.58rem;color:var(--muted);letter-spacing:.08em;margin-top:.15rem;}
+
+    .hero-btns{display:flex;gap:.8rem;flex-wrap:wrap;}
+    .btn-primary{font-family:'IBM Plex Mono',monospace;font-size:.75rem;padding:.75rem 1.8rem;background:var(--grad);color:var(--dark);text-decoration:none;font-weight:700;letter-spacing:.04em;transition:all .2s;display:inline-flex;align-items:center;gap:.5rem;position:relative;overflow:hidden;}
+    .btn-primary:hover{opacity:.88;transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,188,212,.3);}
+    .btn-secondary{font-family:'IBM Plex Mono',monospace;font-size:.75rem;padding:.75rem 1.8rem;border:1px solid var(--border);color:var(--cream);text-decoration:none;letter-spacing:.04em;transition:all .2s;display:inline-flex;align-items:center;gap:.5rem;}
+    .btn-secondary:hover{border-color:var(--gold);color:var(--gold);transform:translateY(-2px);}
+
+    /* Right panel — OS Dashboard style */
+    .hero-right{padding:2.5rem 2rem;display:flex;flex-direction:column;gap:1rem;justify-content:center;position:relative;z-index:1;}
+
+    /* Packet monitor window */
+    .pkt-window{border:1px solid var(--border);background:var(--card);overflow:hidden;}
+    .win-titlebar{background:var(--panel);padding:.5rem 1rem;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--border);}
+    .win-dot{width:9px;height:9px;border-radius:50%;}
+    .win-dot.r{background:#FF5F57;}.win-dot.y{background:#FEBC2E;}.win-dot.g{background:#28C840;}
+    .win-title{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--muted);margin-left:.4rem;letter-spacing:.06em;flex:1;}
+    .win-badge{font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--green);background:rgba(0,200,83,.1);border:1px solid rgba(0,200,83,.2);padding:.1rem .4rem;}
+
+    /* Packet table */
+    .pkt-table{width:100%;border-collapse:collapse;}
+    .pkt-thead td{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);padding:.5rem .8rem;border-bottom:1px solid var(--border);letter-spacing:.1em;background:rgba(0,188,212,.03);}
+    .pkt-row{transition:all .3s;}
+    .pkt-row td{font-family:'IBM Plex Mono',monospace;font-size:.72rem;padding:.55rem .8rem;border-bottom:1px solid rgba(21,53,96,.5);color:var(--cream);}
+    .pkt-row:last-child td{border-bottom:none;}
+    .pkt-row.active{background:rgba(0,188,212,.07);}
+    .pkt-row.active td{color:var(--white);}
+    .op-badge{padding:.12rem .45rem;font-size:.65rem;font-weight:700;display:inline-block;}
+    .op-rrq{background:rgba(0,200,83,.12);color:var(--green);border:1px solid rgba(0,200,83,.3);}
+    .op-wrq{background:rgba(245,166,35,.12);color:var(--gold);border:1px solid rgba(245,166,35,.3);}
+    .op-data{background:rgba(0,188,212,.12);color:var(--teal);border:1px solid rgba(0,188,212,.3);}
+    .op-ack{background:rgba(0,200,83,.1);color:var(--green);border:1px solid rgba(0,200,83,.2);}
+    .op-err{background:rgba(233,69,96,.12);color:var(--accent);border:1px solid rgba(233,69,96,.3);}
+    .pkt-dir{color:var(--muted);font-size:.65rem;}
+    .pkt-dir.send{color:var(--teal);}
+    .pkt-dir.recv{color:var(--gold);}
+
+    /* Transfer progress bar */
+    .transfer-bar-wrap{border:1px solid var(--border);background:var(--card);overflow:hidden;}
+    .transfer-info{display:flex;justify-content:space-between;align-items:center;padding:.55rem .9rem;border-bottom:1px solid var(--border);}
+    .transfer-label{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--muted);}
+    .transfer-val{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--teal);}
+    .transfer-track{height:6px;background:var(--panel);position:relative;}
+    .transfer-fill{height:100%;background:var(--grad);width:0%;transition:width .05s linear;}
+    .transfer-blocks{display:flex;gap:.3rem;padding:.5rem .9rem;flex-wrap:wrap;}
+    .blk{width:10px;height:10px;background:var(--border);transition:background .2s;}
+    .blk.sent{background:var(--teal);}
+    .blk.ack{background:var(--green);}
+
+    /* Mode selector */
+    .mode-select{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--border);overflow:hidden;}
+    .mode-opt{padding:.6rem .5rem;text-align:center;border-right:1px solid var(--border);background:var(--card);cursor:pointer;transition:all .2s;}
+    .mode-opt:last-child{border-right:none;}
+    .mode-opt.active{background:rgba(0,188,212,.12);border-bottom:2px solid var(--teal);}
+    .mode-opt-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.06em;}
+    .mode-opt.active .mode-opt-label{color:var(--teal);}
+    .mode-opt-val{font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;color:var(--white);margin-top:.1rem;}
+
+    /* ══════════════════════════
+       UNIQUE SECTION LAYOUT
+    ══════════════════════════ */
+    section{padding:4.5rem 4rem;position:relative;z-index:1;}
+    .sec-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--teal);letter-spacing:.2em;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem;}
+    .sec-label::before{content:'';width:24px;height:1px;background:var(--teal);}
+    .sec-label::after{content:'|';margin-left:2px;animation:cur .8s step-end infinite;}
+    @keyframes cur{0%,100%{opacity:1}50%{opacity:0}}
+    .sec-title{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,3vw,2.6rem);font-weight:800;line-height:1.12;margin-bottom:.8rem;letter-spacing:-.02em;}
+    .sec-desc{font-size:.92rem;color:var(--muted);line-height:1.82;max-width:600px;font-weight:300;}
+
+    /* ── HOW IT WORKS — 3 column terminal cards ── */
+    .how-section{background:var(--panel);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+    .how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:3rem;border:1px solid var(--border);}
+    .how-card{padding:2.4rem;border-right:1px solid var(--border);position:relative;overflow:hidden;transition:background .3s;}
+    .how-card:last-child{border-right:none;}
+    .how-card:hover{background:rgba(0,188,212,.04);}
+    .how-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--grad);transform:scaleX(0);transition:transform .4s ease;transform-origin:left;}
+    .how-card:hover::after{transform:scaleX(1);}
+    .how-step-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--teal);letter-spacing:.12em;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;}
+    .how-step-num::before{content:'';flex:none;width:20px;height:1px;background:var(--teal);}
+    .how-title{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--white);margin-bottom:.6rem;}
+    .how-desc{font-size:.82rem;color:var(--muted);line-height:1.75;font-weight:300;margin-bottom:1rem;}
+    .how-code{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--teal);background:rgba(0,188,212,.05);border-left:2px solid var(--teal);padding:.45rem .75rem;display:block;}
+
+    /* ── PUT / GET — Unique timeline style ── */
+    .flow-section{border-top:1px solid var(--border);}
+    .flow-grid{display:grid;grid-template-columns:1fr 80px 1fr;gap:0;margin-top:3rem;border:1px solid var(--border);}
+
+    .flow-col{background:var(--card);}
+    .flow-col-header{padding:.7rem 1.4rem;display:flex;align-items:center;gap:.6rem;border-bottom:1px solid var(--border);}
+    .flow-col-header.put{background:rgba(245,166,35,.07);border-top:3px solid var(--gold);}
+    .flow-col-header.get{background:rgba(0,200,83,.07);border-top:3px solid var(--green);}
+    .flow-col-title{font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;letter-spacing:.1em;}
+    .flow-col-title.put{color:var(--gold);}
+    .flow-col-title.get{color:var(--green);}
+    .flow-col-dot{width:8px;height:8px;border-radius:50%;}
+    .flow-col-dot.put{background:var(--gold);}
+    .flow-col-dot.get{background:var(--green);}
+
+    /* Center timeline column */
+    .flow-center{background:var(--panel);border-left:1px solid var(--border);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:.7rem 0;border-top:3px solid var(--teal);}
+    .flow-center-label{font-family:'IBM Plex Mono',monospace;font-size:.58rem;color:var(--teal);letter-spacing:.1em;writing-mode:vertical-rl;margin-top:1rem;}
+    .flow-center-line{flex:1;width:1px;background:linear-gradient(to bottom,var(--teal),transparent);margin-top:.5rem;}
+
+    .flow-steps-col{padding:1.2rem 1.4rem;}
+    .flow-step{display:flex;gap:.8rem;padding:.7rem 0;border-bottom:1px solid rgba(21,53,96,.5);align-items:flex-start;}
+    .flow-step:last-child{border-bottom:none;}
+    .fs-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;font-weight:700;color:var(--dark);min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .fs-num.put{background:var(--gold);}
+    .fs-num.get{background:var(--green);}
+    .fs-body{}
+    .fs-text{font-size:.82rem;color:var(--cream);line-height:1.5;font-weight:300;}
+    .fs-code{font-family:'IBM Plex Mono',monospace;font-size:.68rem;margin-top:.2rem;}
+    .fs-code.put{color:var(--gold);}
+    .fs-code.get{color:var(--green);}
+
+    /* ── MODES — Unique horizontal comparison table ── */
+    .modes-section{background:var(--panel);border-top:1px solid var(--border);}
+    .modes-table{width:100%;border-collapse:collapse;margin-top:3rem;border:1px solid var(--border);}
+    .modes-table th{font-family:'IBM Plex Mono',monospace;font-size:.68rem;padding:.8rem 1.2rem;border-bottom:1px solid var(--border);border-right:1px solid var(--border);letter-spacing:.1em;text-align:left;}
+    .modes-table th:last-child{border-right:none;}
+    .modes-table th.row-label{background:var(--card2);color:var(--muted);width:140px;}
+    .modes-table th.col-default{background:rgba(0,188,212,.08);color:var(--teal);}
+    .modes-table th.col-octet{background:rgba(233,69,96,.08);color:var(--accent);}
+    .modes-table th.col-netascii{background:rgba(245,166,35,.08);color:var(--gold);}
+    .modes-table td{font-family:'DM Sans',sans-serif;font-size:.82rem;padding:.75rem 1.2rem;border-bottom:1px solid rgba(21,53,96,.4);border-right:1px solid rgba(21,53,96,.4);color:var(--cream);font-weight:300;vertical-align:top;}
+    .modes-table td:last-child{border-right:none;}
+    .modes-table tr:last-child td{border-bottom:none;}
+    .modes-table td.row-label{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--muted);background:rgba(7,20,40,.4);letter-spacing:.06em;}
+    .modes-table tr:hover td{background:rgba(0,188,212,.03);}
+    .tag{font-family:'IBM Plex Mono',monospace;font-size:.65rem;padding:.12rem .45rem;border:1px solid;display:inline-block;margin-top:.2rem;}
+    .tag.teal{color:var(--teal);border-color:rgba(0,188,212,.35);}
+    .tag.red{color:var(--accent);border-color:rgba(233,69,96,.35);}
+    .tag.gold{color:var(--gold);border-color:rgba(245,166,35,.35);}
+
+    /* ── FEATURES — Asymmetric 3+3 grid ── */
+    .features-section{border-top:1px solid var(--border);}
+    .features-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;grid-template-rows:auto auto;gap:1px;margin-top:3rem;background:var(--border);}
+    .feat-card{background:var(--card);padding:2rem;transition:background .3s;position:relative;overflow:hidden;}
+    .feat-card:hover{background:var(--card2);}
+    .feat-card.large{grid-row:span 2;display:flex;flex-direction:column;justify-content:space-between;}
+    .feat-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;background:var(--grad);transform:scaleY(0);transition:transform .4s ease;transform-origin:top;}
+    .feat-card:hover::before{transform:scaleY(1);}
+    .feat-icon{font-size:1.6rem;margin-bottom:.9rem;display:block;}
+    .feat-title{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--white);margin-bottom:.4rem;}
+    .feat-large-title{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:800;color:var(--white);margin-bottom:.6rem;line-height:1.2;}
+    .feat-desc{font-size:.8rem;color:var(--muted);line-height:1.7;font-weight:300;}
+    .feat-code{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--teal);background:rgba(0,188,212,.05);border:1px solid rgba(0,188,212,.15);padding:.4rem .7rem;display:inline-block;margin-top:.8rem;}
+
+    /* ── TECH STACK — Unique pill/tag cloud layout ── */
+    .tech-section{background:var(--panel);border-top:1px solid var(--border);}
+    .tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:3rem;}
+    .tech-card{border:1px solid var(--border);background:var(--card);transition:all .3s;position:relative;overflow:hidden;}
+    .tech-card:hover{border-color:var(--teal);transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,188,212,.12);}
+    .tech-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--grad);transform:scaleX(0);transition:transform .35s;}
+    .tech-card:hover::after{transform:scaleX(1);}
+    .tech-card-top{padding:1.4rem 1.4rem .8rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+    .tech-badge{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--teal);background:rgba(0,188,212,.08);border:1px solid rgba(0,188,212,.2);padding:.15rem .5rem;letter-spacing:.08em;}
+    .tech-num{font-family:'IBM Plex Mono',monospace;font-size:1.4rem;font-weight:700;color:rgba(0,188,212,.15);}
+    .tech-card-body{padding:.8rem 1.4rem 1.4rem;}
+    .tech-name{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--white);margin-bottom:.35rem;}
+    .tech-detail{font-size:.78rem;color:var(--muted);line-height:1.65;font-weight:300;}
+
+    /* ── ABOUT — Two-tone split card ── */
+    .about-section{border-top:1px solid var(--border);}
+    .about-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);margin-top:3rem;}
+    .about-left-panel{background:var(--panel);padding:3rem;border-right:1px solid var(--border);position:relative;overflow:hidden;}
+    .about-left-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--grad);}
+    .about-watermark{position:absolute;bottom:-1rem;right:-1rem;font-family:'IBM Plex Mono',monospace;font-size:7rem;font-weight:700;color:rgba(0,188,212,.03);line-height:1;pointer-events:none;}
+    .about-avatar{width:72px;height:72px;background:rgba(0,188,212,.07);border:2px solid rgba(0,188,212,.3);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:.55rem;font-weight:700;color:var(--teal);margin-bottom:1.2rem;text-align:center;line-height:1.4;letter-spacing:.06em;animation:avatarPulse 3s ease-in-out infinite;}
+    @keyframes avatarPulse{0%,100%{border-color:rgba(0,188,212,.3);box-shadow:none}50%{border-color:rgba(0,188,212,.7);box-shadow:0 0 20px rgba(0,188,212,.15)}}
+    .about-name{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:800;margin-bottom:.2rem;}
+    .about-role{font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--teal);letter-spacing:.05em;margin-bottom:1rem;}
+    .about-bio{font-size:.88rem;color:var(--muted);line-height:1.85;font-weight:300;margin-bottom:1.5rem;}
+    .skills-wrap{display:flex;flex-wrap:wrap;gap:.4rem;}
+    .skill{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--teal);border:1px solid rgba(0,188,212,.2);padding:.2rem .6rem;background:rgba(0,188,212,.04);transition:all .2s;}
+    .skill:hover{background:rgba(0,188,212,.12);border-color:var(--teal);}
+
+    .about-right-panel{background:var(--card);padding:2.5rem;}
+    .about-info-row{border-bottom:1px solid var(--border);padding:.9rem 0;display:grid;grid-template-columns:120px 1fr;}
+    .about-info-row:last-of-type{border-bottom:none;}
+    .ainfo-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.1em;padding-top:.1rem;}
+    .ainfo-val{font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--cream);}
+    .ainfo-val strong{font-family:'IBM Plex Mono',monospace;color:var(--teal);}
+    .mentor-list{display:flex;flex-direction:column;gap:.3rem;margin-top:.2rem;}
+    .mentor-item{display:flex;align-items:center;gap:.6rem;font-size:.82rem;color:var(--cream);}
+    .mentor-dot{width:4px;height:4px;background:var(--gold);border-radius:50%;flex-shrink:0;}
+    .about-links{display:flex;gap:.7rem;margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border);}
+
+    /* ── FOOTER ── */
+    footer{padding:1.8rem 4rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--panel);}
+    .footer-left{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);}
+    .footer-left span{color:var(--teal);}
+    .footer-right{display:flex;gap:1.5rem;}
+    .footer-right a{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--muted);text-decoration:none;transition:color .2s;}
+    .footer-right a:hover{color:var(--teal);}
+
+    /* ── FADE UP ── */
+    .fade-up{opacity:0;transform:translateY(22px);animation:fadeUp .7s ease forwards;}
+    @keyframes fadeUp{to{opacity:1;transform:translateY(0);}}
+    .fade-up:nth-child(1){animation-delay:.1s}.fade-up:nth-child(2){animation-delay:.22s}.fade-up:nth-child(3){animation-delay:.34s}.fade-up:nth-child(4){animation-delay:.46s}.fade-up:nth-child(5){animation-delay:.58s}.fade-up:nth-child(6){animation-delay:.7s}
+
+    ::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--border);}
+    @media(max-width:960px){
+      nav{padding:0 1.5rem;}.nav-links{display:none;}
+      .hero{grid-template-columns:1fr;}.hero-left{padding:5rem 2rem 3rem;}.hero-right{display:none;}
+      section{padding:3rem 1.5rem;}
+      .how-grid{grid-template-columns:1fr;}.how-card{border-right:none;border-bottom:1px solid var(--border);}
+      .flow-grid{grid-template-columns:1fr;}.flow-center{display:none;}
+      .features-grid{grid-template-columns:1fr;}.feat-card.large{grid-row:span 1;}
+      .tech-grid{grid-template-columns:1fr 1fr;}
+      .about-grid{grid-template-columns:1fr;}
+      .about-left-panel{border-right:none;border-bottom:1px solid var(--border);}
+      footer{flex-direction:column;gap:1rem;text-align:center;padding:1.5rem;}
+    }
+  </style>
 </head>
 <body>
 
-<header class="navbar">
-    <div class="nav-container">
-        <div class="logo">Trivial File Transfer Protocol</div>
+<div class="scroll-bar" id="scrollBar"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
 
-        <div class="menu-toggle" id="menuToggle">&#9776;</div>
-
-        <div class="nav-buttons" id="navButtons">
-            <a href="https://github.com/Manu-hp1" class="btn">GitHub Profile</a>
-            <a href="https://github.com/Manu-hp1/Trivial_File_Transfer_Protocol" class="btn">View Project</a>
-        </div>
+<!-- ════ NAV ════ -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-dot"></div>
+    MANUSHARE · TFTP
+  </div>
+  <div class="nav-links">
+    <a href="#how">PROTOCOL</a>
+    <a href="#flow">PUT/GET</a>
+    <a href="#modes">MODES</a>
+    <a href="#features">FEATURES</a>
+    <a href="#tech">STACK</a>
+    <a href="#about">ABOUT</a>
+  </div>
+  <div class="nav-right">
+    <div class="theme-toggle-wrap" onclick="toggleTheme()">
+      <span class="theme-icon" id="themeIconMoon">🌙</span>
+      <div class="theme-toggle"></div>
+      <span class="theme-icon" id="themeIconSun">☀️</span>
     </div>
-</header>
+    <a href="https://github.com/Manu-hp1/Trivial_File_Transfer_Protocol" target="_blank" class="nav-btn"><span>↗ SOURCE</span></a>
+  </div>
+</nav>
 
+<!-- ════ HERO ════ -->
 <section class="hero">
-    <div class="hero-left">
-        <h1>UDP-Based<br>TFTP Implementation</h1>
+  <!-- LEFT — Main content -->
+  <div class="hero-left">
+    <div class="hero-status fade-up">
+      <div class="status-dot"></div>
+      <span class="status-text">SYSTEM ONLINE</span>
+      <div class="status-divider"></div>
+      <span class="status-port">UDP · PORT 6969 · RFC 1350</span>
     </div>
 
-    <div class="hero-right">
-        <p>
-            A custom implementation of the Trivial File Transfer Protocol (TFTP)
-            using UDP sockets in C, supporting file upload and download
-            operations between client and server systems.
-        </p>
+    <h1 class="fade-up">
+      Custom<br/>
+      <span class="line-teal">File Transfer</span><br/>
+      <span class="line-gold">Over UDP.</span>
+    </h1>
 
-        <div class="hero-buttons">
-            <a href="https://github.com/Manu-hp1/Trivial_File_Transfer_Protocol" class="primary-btn">Source Code</a>
-            <a href="https://youtube.com/YOUR_DEMO_LINK" class="secondary-btn">Watch Demo</a>
-        </div>
+    <p class="hero-sub fade-up">A complete TFTP implementation in C — CONNECT, PUT, GET, three transfer modes and a custom interactive CLI called MANUSHARE. Built from scratch using raw UDP sockets.</p>
+
+    <div class="stat-bar fade-up">
+      <div class="stat-cell"><span class="stat-val">UDP</span><div class="stat-key">PROTOCOL</div></div>
+      <div class="stat-cell"><span class="stat-val">5</span><div class="stat-key">PKT TYPES</div></div>
+      <div class="stat-cell"><span class="stat-val">3</span><div class="stat-key">MODES</div></div>
+      <div class="stat-cell"><span class="stat-val">512B</span><div class="stat-key">BLOCK SIZE</div></div>
+      <div class="stat-cell"><span class="stat-val">6969</span><div class="stat-key">PORT</div></div>
     </div>
-</section>
 
-<section class="section">
-    <h2>Core Functionalities</h2>
-    <div class="features">
-        <div class="card">
-            <h3>Client–Server Model</h3>
-            <p>Implements file transfer using UDP socket communication.</p>
-        </div>
-        <div class="card">
-            <h3>PUT & GET Operations</h3>
-            <p>Supports file upload and download requests.</p>
-        </div>
-        <div class="card">
-            <h3>Packet Handling</h3>
-            <p>Implements RRQ, WRQ, DATA, ACK and ERROR packets.</p>
-        </div>
+    <div class="hero-btns fade-up">
+      <a href="https://github.com/Manu-hp1/Trivial_File_Transfer_Protocol" target="_blank" class="btn-primary">↗ Source Code</a>
+      <a href="https://youtube.com/YOUR_DEMO_LINK" target="_blank" class="btn-secondary">▶ Watch Demo</a>
     </div>
-</section>
+  </div>
 
-<section class="section light">
-    <h2>Key Features</h2>
-    <ul class="list">
-        <li>• UDP socket programming</li>
-        <li>• Client-server based file transfer</li>
-        <li>• Support for file upload (PUT) and file download (GET)</li>
-        <li>• Handles text (netascii) and binary (octet) transfer modes</li>
-        <li>• Structured DATA and ACK packet handling</li>
-        <li>• Simple and readable logging for packet flow and errors</li>
-        <li>• Designed for Linux environments</li>
-    </ul>
-</section>
-
-<section class="section">
-    <h2>Technology Stack</h2>
-    <div class="tech">
-        <span>C Programming</span>
-        <span>UDP Socket Programming</span>
-        <span>Linux System Calls (socket, bind, sendto, recvfrom, fork, read, write)</span>
-        <span>Client-Server Architecture</span>
-        <span>File I/O Operations</span>
-        <span>Basic Networking Concepts</span>
-        <span>Structured Logging</span>
+  <!-- RIGHT — Dashboard panels -->
+  <div class="hero-right">
+    <!-- Packet monitor -->
+    <div class="pkt-window">
+      <div class="win-titlebar">
+        <div class="win-dot r"></div><div class="win-dot y"></div><div class="win-dot g"></div>
+        <span class="win-title">packet-monitor · manushare</span>
+        <span class="win-badge">LIVE</span>
+      </div>
+      <table class="pkt-table">
+        <tr class="pkt-thead">
+          <td>OPCODE</td><td>DESCRIPTION</td><td>DIR</td><td>OP#</td>
+        </tr>
+        <tr class="pkt-row" id="pk0"><td><span class="op-badge op-rrq">RRQ</span></td><td>Read Request</td><td class="pkt-dir send">→ SVR</td><td>01</td></tr>
+        <tr class="pkt-row" id="pk1"><td><span class="op-badge op-wrq">WRQ</span></td><td>Write Request</td><td class="pkt-dir send">→ SVR</td><td>02</td></tr>
+        <tr class="pkt-row" id="pk2"><td><span class="op-badge op-data">DATA</span></td><td>Block #N · 512B</td><td class="pkt-dir recv">← SVR</td><td>03</td></tr>
+        <tr class="pkt-row" id="pk3"><td><span class="op-badge op-ack">ACK</span></td><td>Acknowledge #N</td><td class="pkt-dir send">→ SVR</td><td>04</td></tr>
+        <tr class="pkt-row" id="pk4"><td><span class="op-badge op-err">ERR</span></td><td>Error + message</td><td class="pkt-dir recv">← SVR</td><td>05</td></tr>
+      </table>
     </div>
+
+    <!-- Transfer progress -->
+    <div class="transfer-bar-wrap">
+      <div class="win-titlebar">
+        <div class="win-dot r"></div><div class="win-dot y"></div><div class="win-dot g"></div>
+        <span class="win-title">transfer-progress · PUT t1.txt</span>
+        <span class="win-badge" id="xferBadge">ACTIVE</span>
+      </div>
+      <div class="transfer-info">
+        <span class="transfer-label">BLOCKS SENT</span>
+        <span class="transfer-val" id="xferVal">0 / 8</span>
+      </div>
+      <div class="transfer-track"><div class="transfer-fill" id="xferFill"></div></div>
+      <div class="transfer-blocks" id="xferBlocks"></div>
+    </div>
+
+    <!-- Mode selector -->
+    <div class="mode-select">
+      <div class="mode-opt active" id="mode0" onclick="setMode(0)">
+        <div class="mode-opt-label">MODE 1</div>
+        <div class="mode-opt-val" style="color:var(--teal)">DEFAULT</div>
+      </div>
+      <div class="mode-opt" id="mode1" onclick="setMode(1)">
+        <div class="mode-opt-label">MODE 2</div>
+        <div class="mode-opt-val" style="color:var(--accent)">OCTET</div>
+      </div>
+      <div class="mode-opt" id="mode2" onclick="setMode(2)">
+        <div class="mode-opt-label">MODE 3</div>
+        <div class="mode-opt-val" style="color:var(--gold)">NETASCII</div>
+      </div>
+    </div>
+  </div>
 </section>
 
-<section class="section light">
-    <h2>About the Developer</h2>
-    <p class="about">
-        Hi, I’m <strong>Manu H P</strong>, an Embedded Systems trainee at Emertxe Information Technologies.
-        This project enhanced my understanding of networking protocols,
-        UDP socket programming, packet structures, and reliable data transfer mechanisms.
-    </p>
+<!-- ════ HOW IT WORKS ════ -->
+<section class="how-section" id="how">
+  <div class="sec-label">PROTOCOL OVERVIEW</div>
+  <h2 class="sec-title">How TFTP Works</h2>
+  <p class="sec-desc">TFTP runs over UDP on port 6969. Every file transfer is a handshake sequence — a request, data blocks of 512 bytes each, and an acknowledgement for every single block.</p>
+  <div class="how-grid">
+    <div class="how-card">
+      <div class="how-step-num">STEP 01</div>
+      <div class="how-title">CONNECT to Server</div>
+      <div class="how-desc">Creates UDP socket, validates server IP using inet_pton() and checks port range 1024–65535. Stores server address in client struct for all PUT and GET operations.</div>
+      <code class="how-code">socket(AF_INET, SOCK_DGRAM, 0)</code>
+    </div>
+    <div class="how-card">
+      <div class="how-step-num">STEP 02</div>
+      <div class="how-title">Send & Receive Packets</div>
+      <div class="how-desc">PUT sends WRQ then DATA blocks. GET sends RRQ and receives DATA. A do-while on recvfrom() verifies sender IP and port — prevents packet mixing from multiple clients.</div>
+      <code class="how-code">sendto() · recvfrom() · htons()</code>
+    </div>
+    <div class="how-card">
+      <div class="how-step-num">STEP 03</div>
+      <div class="how-title">Queue-Based Server</div>
+      <div class="how-desc">Server binds to INADDR_ANY on port 6969. No fork() — one client served at a time using the UDP kernel receive buffer as a natural FIFO queue.</div>
+      <code class="how-code">bind() · INADDR_ANY · waitpid()</code>
+    </div>
+  </div>
 </section>
 
-<footer class="footer">
-    © 2026 Manu H P · TFTP Project
+<!-- ════ PUT / GET FLOW ════ -->
+<section class="flow-section" id="flow">
+  <div class="sec-label">FILE TRANSFER OPERATIONS</div>
+  <h2 class="sec-title">PUT & GET Handshake</h2>
+  <p class="sec-desc">PUT uploads a file client→server. GET downloads server→client. Both follow a strict block-by-block handshake until an empty DATA packet signals end of file.</p>
+  <div class="flow-grid">
+    <!-- PUT -->
+    <div class="flow-col">
+      <div class="flow-col-header put"><div class="flow-col-dot put"></div><span class="flow-col-title put">PUT — WRQ (Write Request)</span></div>
+      <div class="flow-steps-col">
+        <div class="flow-step"><div class="fs-num put">1</div><div class="fs-body"><div class="fs-text">Client sends WRQ with filename and mode</div><div class="fs-code put">pkt.opcode = htons(WRQ)</div></div></div>
+        <div class="flow-step"><div class="fs-num put">2</div><div class="fs-body"><div class="fs-text">Server replies ACK 0 — ready to receive</div><div class="fs-code put">recvfrom() → ACK block 0</div></div></div>
+        <div class="flow-step"><div class="fs-num put">3</div><div class="fs-body"><div class="fs-text">Client sends DATA block 1 (512 bytes)</div><div class="fs-code put">pkt.opcode = htons(DATA)</div></div></div>
+        <div class="flow-step"><div class="fs-num put">4</div><div class="fs-body"><div class="fs-text">Server ACKs every block received</div><div class="fs-code put">sendto() → ACK block N</div></div></div>
+        <div class="flow-step"><div class="fs-num put">5</div><div class="fs-body"><div class="fs-text">Client sends empty DATA (size=0) → EOF</div><div class="fs-code put">data_size = 0  →  EOF signal</div></div></div>
+      </div>
+    </div>
+    <!-- Center -->
+    <div class="flow-center">
+      <div class="flow-center-line"></div>
+      <span class="flow-center-label">UDP · PORT 6969</span>
+    </div>
+    <!-- GET -->
+    <div class="flow-col">
+      <div class="flow-col-header get"><div class="flow-col-dot get"></div><span class="flow-col-title get">GET — RRQ (Read Request)</span></div>
+      <div class="flow-steps-col">
+        <div class="flow-step"><div class="fs-num get">1</div><div class="fs-body"><div class="fs-text">Client sends RRQ with filename and mode</div><div class="fs-code get">pkt.opcode = htons(RRQ)</div></div></div>
+        <div class="flow-step"><div class="fs-num get">2</div><div class="fs-body"><div class="fs-text">Server sends DATA block 1 directly — no prior ACK</div><div class="fs-code get">sendto() → DATA block 1</div></div></div>
+        <div class="flow-step"><div class="fs-num get">3</div><div class="fs-body"><div class="fs-text">Client ACKs each block and writes to file</div><div class="fs-code get">write(fd, data, size)</div></div></div>
+        <div class="flow-step"><div class="fs-num get">4</div><div class="fs-body"><div class="fs-text">Server sends next block on each ACK</div><div class="fs-code get">recvfrom() → ACK N → send N+1</div></div></div>
+        <div class="flow-step"><div class="fs-num get">5</div><div class="fs-body"><div class="fs-text">Server sends empty DATA → EOF signal</div><div class="fs-code get">if (data_size == 0) → EOF</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ MODES ════ -->
+<section class="modes-section" id="modes">
+  <div class="sec-label">TRANSFER MODES</div>
+  <h2 class="sec-title">DEFAULT · OCTET · NETASCII</h2>
+  <p class="sec-desc">Three modes control how data is read, transmitted and written. Selectable at any time from the MODE CHANGE menu before starting a transfer.</p>
+  <table class="modes-table">
+    <tr>
+      <th class="row-label">PROPERTY</th>
+      <th class="col-default">MODE 1 — DEFAULT</th>
+      <th class="col-octet">MODE 2 — OCTET</th>
+      <th class="col-netascii">MODE 3 — NETASCII</th>
+    </tr>
+    <tr>
+      <td class="row-label">BLOCK SIZE</td>
+      <td>512 bytes per block<br/><span class="tag teal">FASTEST</span></td>
+      <td>1 byte per block<br/><span class="tag red">PRECISE</span></td>
+      <td>512 bytes per block<br/><span class="tag gold">WITH CONVERSION</span></td>
+    </tr>
+    <tr>
+      <td class="row-label">USE CASE</td>
+      <td>Same-OS text transfers — Linux to Linux</td>
+      <td>Binary files — executables, images</td>
+      <td>Cross-OS text — Linux ↔ Windows</td>
+    </tr>
+    <tr>
+      <td class="row-label">CONVERSION</td>
+      <td>None</td>
+      <td>None — raw binary</td>
+      <td>LF ↔ CRLF auto-converted</td>
+    </tr>
+    <tr>
+      <td class="row-label">KEY FUNCTION</td>
+      <td><code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--teal)">data_size = 512</code></td>
+      <td><code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--accent)">data_size = 1</code></td>
+      <td><code style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--gold)">netascii_linux / windows()</code></td>
+    </tr>
+    <tr>
+      <td class="row-label">LINE ENDING</td>
+      <td>Unchanged</td>
+      <td>Unchanged</td>
+      <td>Linux: removes \r · Win: adds \r\n</td>
+    </tr>
+  </table>
+</section>
+
+<!-- ════ FEATURES ════ -->
+<section class="features-section" id="features">
+  <div class="sec-label">KEY FEATURES</div>
+  <h2 class="sec-title">What MANUSHARE Does</h2>
+  <div class="features-grid">
+    <!-- Large feature card -->
+    <div class="feat-card large">
+      <div>
+        <span class="feat-icon">🖥️</span>
+        <div class="feat-large-title">Interactive CLI — MANUSHARE</div>
+        <div class="feat-desc">Custom colored terminal menu with CONNECT, PUT, GET, MODE CHANGE and EXIT options. Real-time block-by-block transfer logs showing opcode, block number and transfer size on every packet sent or received.</div>
+      </div>
+      <code class="feat-code">CONNECT → PUT / GET → MODE → EXIT</code>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🔗</span>
+      <div class="feat-title">CONNECT Operation</div>
+      <div class="feat-desc">Creates UDP socket, validates server IP with inet_pton(), checks port range 1024–65535. Must connect before any PUT or GET.</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🛡️</span>
+      <div class="feat-title">Packet Collision Guard</div>
+      <div class="feat-desc">do-while on recvfrom() verifies sender IP and port match current client. Silently discards packets from other clients.</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">📤</span>
+      <div class="feat-title">PUT — File Upload</div>
+      <div class="feat-desc">WRQ → ACK 0 → DATA blocks → EOF. Sends empty DATA packet as end-of-file signal after last block.</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">📥</span>
+      <div class="feat-title">GET — File Download</div>
+      <div class="feat-desc">RRQ → DATA blocks → ACK each. Receives directly without waiting for prior ACK. Stops on empty DATA (EOF).</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ TECH STACK ════ -->
+<section class="tech-section" id="tech">
+  <div class="sec-label">TECHNOLOGY STACK</div>
+  <h2 class="sec-title">Built With</h2>
+  <div class="tech-grid">
+    <div class="tech-card">
+      <div class="tech-card-top"><span class="tech-badge">LANGUAGE</span><span class="tech-num">01</span></div>
+      <div class="tech-card-body"><div class="tech-name">C Programming</div><div class="tech-detail">Pure C with no external libraries. Every socket, packet, file operation and mode conversion built from scratch using standard POSIX calls.</div></div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-card-top"><span class="tech-badge">PROTOCOL</span><span class="tech-num">02</span></div>
+      <div class="tech-card-body"><div class="tech-name">UDP / TFTP RFC 1350</div><div class="tech-detail">SOCK_DGRAM over UDP port 6969. Implements RRQ, WRQ, DATA, ACK and ERROR packets with correct opcode encoding using htons().</div></div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-card-top"><span class="tech-badge">NETWORK</span><span class="tech-num">03</span></div>
+      <div class="tech-card-body"><div class="tech-name">Socket Programming</div><div class="tech-detail">socket(), bind(), sendto(), recvfrom(), inet_pton(), htons(), ntohs() — full POSIX networking stack for UDP client-server communication.</div></div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-card-top"><span class="tech-badge">SYSTEM</span><span class="tech-num">04</span></div>
+      <div class="tech-card-body"><div class="tech-name">Linux System Calls</div><div class="tech-detail">open(), read(), write(), close(), lseek() for file I/O. INADDR_ANY for server binding. Kernel UDP buffer for queue-based client handling.</div></div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-card-top"><span class="tech-badge">CONVERSION</span><span class="tech-num">05</span></div>
+      <div class="tech-card-body"><div class="tech-name">NETASCII Mode</div><div class="tech-detail">netascii_linux() strips \r for Linux targets. netascii_windows() converts \n to \r\n. Separate write index j prevents the buffer overwrite bug.</div></div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-card-top"><span class="tech-badge">PLATFORM</span><span class="tech-num">06</span></div>
+      <div class="tech-card-body"><div class="tech-name">Linux / GCC</div><div class="tech-detail">gcc -o server tftp_server.c tftp.c and gcc -o client tftp_client.c. Compiled with -Wall -Wextra for zero warnings on Linux WSL.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ ABOUT ════ -->
+<section class="about-section" id="about">
+  <div class="sec-label">ABOUT THE DEVELOPER</div>
+  <h2 class="sec-title">Manu H P</h2>
+  <div class="about-grid">
+    <div class="about-left-panel">
+      <div class="about-watermark">MHP</div>
+      <div class="about-avatar">ABOUT<br/>DEV</div>
+      <div class="about-name">Manu H P</div>
+      <div class="about-role">Embedded Systems Trainee — Emertxe</div>
+      <p class="about-bio">MANUSHARE was my Linux Internals project at Emertxe Information Technology. It brought together socket programming, UDP networking, binary file handling, process management and cross-OS compatibility into one working tool. Every bug fixed — from the recvfrom() deadlock to the NETASCII index overflow — taught me something that directly applies to real embedded networking.</p>
+      <div class="skills-wrap">
+        <span class="skill">C Programming</span>
+        <span class="skill">UDP Sockets</span>
+        <span class="skill">Linux Internals</span>
+        <span class="skill">Network Protocols</span>
+        <span class="skill">File I/O</span>
+        <span class="skill">Embedded Systems</span>
+      </div>
+    </div>
+    <div class="about-right-panel">
+      <div class="about-info-row"><div class="ainfo-label">INSTITUTE</div><div class="ainfo-val"><strong>Emertxe</strong> Information Technology</div></div>
+      <div class="about-info-row"><div class="ainfo-label">MODULE</div><div class="ainfo-val">Linux Internals — <strong>Capstone Project</strong></div></div>
+      <div class="about-info-row"><div class="ainfo-label">PROJECT</div><div class="ainfo-val"><strong>MANUSHARE</strong> — Custom TFTP Tool</div></div>
+      <div class="about-info-row">
+        <div class="ainfo-label">GUIDED BY</div>
+        <div class="ainfo-val">
+          <div class="mentor-list">
+            <div class="mentor-item"><div class="mentor-dot"></div>Anand Lokhande Sir</div>
+            <div class="mentor-item"><div class="mentor-dot"></div>Jagadeesan S Sir</div>
+            <div class="mentor-item"><div class="mentor-dot"></div>Thangaraja L Sir</div>
+          </div>
+        </div>
+      </div>
+      <div class="about-links">
+        <a href="https://github.com/Manu-hp1/Trivial_File_Transfer_Protocol" target="_blank" class="btn-primary" style="font-size:.72rem;padding:.5rem 1.1rem;">GitHub ↗</a>
+        <a href="https://github.com/Manu-hp1" target="_blank" class="btn-secondary" style="font-size:.72rem;padding:.5rem 1.1rem;">Profile ↗</a>
+        <a href="https://manu-hp1.github.io/TFTP.io/" target="_blank" class="btn-secondary" style="font-size:.72rem;padding:.5rem 1.1rem;">Live ↗</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ FOOTER ════ -->
+<footer>
+  <div class="footer-left">© 2026 <span>Manu H P</span> · MANUSHARE · TFTP over UDP in C</div>
+  <div class="footer-right">
+    <a href="https://github.com/Manu-hp1" target="_blank">GITHUB</a>
+    <a href="https://github.com/Manu-hp1/Trivial_File_Transfer_Protocol" target="_blank">REPOSITORY</a>
+    <a href="https://manu-hp1.github.io/TFTP.io/" target="_blank">LIVE PAGE</a>
+  </div>
 </footer>
 
-<script src="script.js"></script>
+<script>
+  // ── THEME ──
+  function toggleTheme(){
+    const h=document.documentElement,isL=h.getAttribute('data-theme')==='light';
+    h.setAttribute('data-theme',isL?'dark':'light');
+    localStorage.setItem('theme',isL?'dark':'light');
+  }
+  const t=localStorage.getItem('theme')||'dark';
+  document.documentElement.setAttribute('data-theme',t);
+  if(t==='light'){document.getElementById('themeIconMoon').style.opacity='.3';document.getElementById('themeIconSun').style.opacity='1';}
+
+  // ── SCROLL PROGRESS ──
+  window.addEventListener('scroll',()=>{
+    const p=(window.scrollY/(document.body.scrollHeight-window.innerHeight))*100;
+    document.getElementById('scrollBar').style.width=p+'%';
+  });
+
+  // ── PACKET ROW CYCLING ──
+  const pkRows=document.querySelectorAll('.pkt-row');
+  let pkIdx=0;
+  setInterval(()=>{
+    pkRows.forEach(r=>r.classList.remove('active'));
+    pkIdx=(pkIdx+1)%pkRows.length;
+    pkRows[pkIdx].classList.add('active');
+  },1400);
+
+  // ── TRANSFER PROGRESS ANIMATION ──
+  const TOTAL_BLOCKS=8;
+  let blksDone=0,xferDir=1;
+  const xferFill=document.getElementById('xferFill');
+  const xferVal=document.getElementById('xferVal');
+  const xferBadge=document.getElementById('xferBadge');
+  const xferBlocks=document.getElementById('xferBlocks');
+  // Build block cells
+  for(let i=0;i<TOTAL_BLOCKS;i++){const b=document.createElement('div');b.className='blk';b.id='blk'+i;xferBlocks.appendChild(b);}
+  function animXfer(){
+    if(xferDir===1){
+      if(blksDone<TOTAL_BLOCKS){
+        document.getElementById('blk'+blksDone).className='blk sent';
+        blksDone++;
+        setTimeout(()=>{document.getElementById('blk'+(blksDone-1)).className='blk ack';},300);
+        xferFill.style.width=(blksDone/TOTAL_BLOCKS*100)+'%';
+        xferVal.textContent=blksDone+' / '+TOTAL_BLOCKS;
+        setTimeout(animXfer,500);
+      } else {
+        xferBadge.textContent='DONE';
+        xferBadge.style.color='var(--green)';
+        xferBadge.style.borderColor='rgba(0,200,83,.3)';
+        setTimeout(()=>{
+          blksDone=0;xferDir=1;
+          xferFill.style.width='0%';xferVal.textContent='0 / '+TOTAL_BLOCKS;
+          xferBadge.textContent='ACTIVE';xferBadge.style.color='';xferBadge.style.borderColor='';
+          for(let i=0;i<TOTAL_BLOCKS;i++) document.getElementById('blk'+i).className='blk';
+          setTimeout(animXfer,800);
+        },2000);
+      }
+    }
+  }
+  setTimeout(animXfer,1500);
+
+  // ── MODE SELECT ──
+  function setMode(idx){
+    document.querySelectorAll('.mode-opt').forEach((m,i)=>{
+      m.classList.toggle('active',i===idx);
+    });
+  }
+
+  // ── SCROLL REVEAL ──
+  const obs=new IntersectionObserver(e=>{
+    e.forEach(x=>{if(x.isIntersecting){x.target.style.opacity='1';x.target.style.transform='translateY(0)';}});
+  },{threshold:.07});
+  document.querySelectorAll('.how-card,.feat-card,.tech-card,.about-left-panel,.about-right-panel').forEach(el=>{
+    el.style.opacity='0';el.style.transform='translateY(20px)';el.style.transition='all .55s ease';obs.observe(el);
+  });
+</script>
 </body>
 </html>
